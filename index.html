@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="./styles/normalize.css">
   <link rel="stylesheet" href="./styles/itc-custom-select.css">
   <link rel="stylesheet" href="./styles/style.css">
-  <script defer src="crm.js"></script>
+  <link rel="stylesheet" href="./styles/media.css">
   <title>skb.</title>
 </head>
 
@@ -33,7 +33,7 @@
           <span class="cell__content cell__content_header id-cell__content_header">ID</span>
           <button class="cell__sort-btn id-cell__sort-btn" data-type="id">
             <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3.49691e-07 4L0.705 4.705L3.5 1.915L3.5 8L4.5 8L4.5 1.915L7.29 4.71L8 4L4 -3.49691e-07L3.49691e-07 4Z"
+              <path d="M8 4L7.295 3.295L4.5 6.085L4.5 0L3.5 0L3.5 6.085L0.71 3.29L0 4L4 8L8 4Z"
                     fill="#9873FF"/>
             </svg>
           </button>
@@ -50,7 +50,7 @@
         </div>
         <div class="row__cell row__cell_header cell created-cell col-2">
           <span class="cell__content cell__content_header created-cell__content_header">Дата и время создания</span>
-          <button class="cell__sort-btn name-cell__sort-btn" data-type="created">
+          <button class="cell__sort-btn created-cell__sort-btn" data-type="created">
             <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M8 4L7.295 3.295L4.5 6.085L4.5 0L3.5 0L3.5 6.085L0.71 3.29L0 4L4 8L8 4Z"
                     fill="#9873FF"/>
@@ -86,6 +86,10 @@
 </main>
 <script src="./js/itc-custom-select.js"></script>
 <script src="./js/inputmask.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js"></script>
+<script src="https://unpkg.com/tippy.js@6/dist/tippy-bundle.umd.js"></script>
+<script src="crm.js"></script>
+<script src="./js/index.js"></script>
 </body>
 
 </html>

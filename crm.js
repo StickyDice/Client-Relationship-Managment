@@ -19,6 +19,17 @@
         email: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
             '<path opacity="0.7" fill-rule="evenodd" clip-rule="evenodd" d="M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM4 5.75C4 5.3375 4.36 5 4.8 5H11.2C11.64 5 12 5.3375 12 5.75V10.25C12 10.6625 11.64 11 11.2 11H4.8C4.36 11 4 10.6625 4 10.25V5.75ZM8.424 8.1275L11.04 6.59375C11.14 6.53375 11.2 6.4325 11.2 6.32375C11.2 6.0725 10.908 5.9225 10.68 6.05375L8 7.625L5.32 6.05375C5.092 5.9225 4.8 6.0725 4.8 6.32375C4.8 6.4325 4.86 6.53375 4.96 6.59375L7.576 8.1275C7.836 8.28125 8.164 8.28125 8.424 8.1275Z" fill="#9873FF"/>\n' +
             '</svg>\n',
+        other: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
+            '<path opacity="0.7" fill-rule="evenodd" clip-rule="evenodd" d="M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM3 8C3 5.24 5.24 3 8 3C10.76 3 13 5.24 13 8C13 10.76 10.76 13 8 13C5.24 13 3 10.76 3 8ZM9.5 6C9.5 5.17 8.83 4.5 8 4.5C7.17 4.5 6.5 5.17 6.5 6C6.5 6.83 7.17 7.5 8 7.5C8.83 7.5 9.5 6.83 9.5 6ZM5 9.99C5.645 10.96 6.75 11.6 8 11.6C9.25 11.6 10.355 10.96 11 9.99C10.985 8.995 8.995 8.45 8 8.45C7 8.45 5.015 8.995 5 9.99Z" fill="#9873FF"/>\n' +
+            '</svg>\n',
+    };
+
+    const buttonTextContent = {
+        vkontakte: 'VK',
+        facebook: 'Facebook',
+        phone: 'Телефон',
+        email: 'Email',
+        other: 'Доп.&nbsp;телефон',
     }
 
     let users = await getUsers();
@@ -39,20 +50,32 @@
         }).then(callback);
     }
 
-    function editUser(data, userId) {
+    function editUser(data, userId, callback = () => {
+    }) {
         fetch(`http://localhost:3000/api/clients/${userId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(data),
-        })
+        }).then(callback);
     }
 
     function deleteUser(userId) {
         fetch(`http://localhost:3000/api/clients/${userId}`, {
             method: 'DELETE',
         });
+    }
+
+    async function getUserFromSearch(searchValue) {
+        fetch(`http://localhost:3000/api/clients?search=${searchValue}`)
+            .then((res) => res.json())
+            .then((data) => {
+                users = data;
+                deleteTable();
+                sortStudents(data, 'id', sortedBy, true);
+                renderTable(users);
+            });
     }
 
     function generateRandomNumber() {
@@ -70,7 +93,7 @@
         return date;
     }
 
-    function sortStudents(studentsArray, sortBy, reverse) {
+    function sortStudents(studentsArray, sortBy, sortedColumn, reverse = false) {
         function convertToSortableType(value, sortBy) {
             switch (sortBy) {
                 case 'id':
@@ -84,13 +107,13 @@
             }
         }
 
-        if (reverse === false) {
+        if (reverse) {
             return {
                 studentsArray: studentsArray.sort(function (a, b) {
                     if (convertToSortableType(a, sortBy) > convertToSortableType(b, sortBy)) return 1;
                     return -1;
                 }),
-                reverse: !reverse
+                sortedColumn
             }
         } else {
             return {
@@ -98,7 +121,7 @@
                     if (convertToSortableType(a, sortBy) < convertToSortableType(b, sortBy)) return 1;
                     return -1;
                 }),
-                reverse: !reverse
+                sortedColumn
             }
         }
     }
@@ -108,6 +131,60 @@
         for (let item of tableItems) {
             item.remove();
         }
+    }
+
+    function validateForm() {
+        const convertName = {
+            'lastname': 'Фамилия',
+            'name': 'Имя',
+            'surname': 'Отчество',
+            'email': 'Email',
+            'phone': 'Телефон',
+            'facebook': 'Facebook',
+            'vkontakte': 'VK',
+            'other': 'Доп. телефон'
+        }
+        const validateForms = [ ...document.querySelectorAll('.form__input'), ...document.querySelectorAll('.contact-input-field') ]
+        const EMAIL_REGEX = /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/iu;
+        const NAME_REGEX = /^[А-Я][а-яё]*$/;
+        let errorMessage;
+        let invalidInput;
+        for (let input of validateForms) {
+            input.classList.remove('invalidField');
+            if ((input.name === 'phone' || input.name === 'other') && input.value.length !== 18) {
+                errorMessage = `Поле ${convertName[input.name]} должно содержать 9 цифр`
+                invalidInput = input;
+                break;
+            }
+            if (input.name === 'vkontakte' && !input.value.includes('vk.com/')) {
+                errorMessage = 'Введите верный id Вконтакте'
+                invalidInput = input;
+                break;
+            }
+            if (input.name === 'facebook' && !input.value.includes('https://www.facebook.com/')) {
+                errorMessage = 'Введите верную ссылку на Facebook'
+                invalidInput = input;
+                break;
+            }
+            if (input.name === 'email' && !EMAIL_REGEX.test(input.value)) {
+                errorMessage = 'Введите верный email'
+                invalidInput = input;
+                break;
+            }
+            if ((input.name === 'name' || input.name === 'lastname' || input.name === 'surname') && !NAME_REGEX.test(input.value)) {
+                errorMessage = `Поле ${convertName[input.name]} содержит недопустимые символы`
+                invalidInput = input;
+                break;
+            }
+            if (input.value.length < 3) {
+                errorMessage = `Поле ${convertName[input.name]} должно содержать минимум 3 символа`
+                invalidInput = input;
+                break;
+            }
+        }
+
+        invalidInput.classList.add('invalidField');
+        return errorMessage ? errorMessage : '';
     }
 
     function renderTable(students) {
@@ -162,11 +239,44 @@
             iconsWrapper.classList.add('row__cell', 'cell', 'contacts-cell');
             const icons = document.createElement('div');
             icons.classList.add('contacts-cell__icons');
+            const otherContacts = [];
+            let mountedContacts = 0;
             for (let contact of student.contacts) {
-                const icon = document.createElement('div');
-                icon.innerHTML = contactIcons[contact.type]
-                icons.append(icon);
+                const icon = document.createElement('button');
+                icon.classList.add('tippy');
+                icon.dataset.tippyContent = contact.value;
+                icon.innerHTML = contactIcons[contact.type];
+                if (contact.type === 'other') {
+                    otherContacts.push(icon);
+                } else {
+                    icons.append(icon);
+                    mountedContacts++;
+                }
             }
+
+            while (mountedContacts < 5 && otherContacts.length !== 0 && !(mountedContacts === 4 && otherContacts.length > 1)) {
+                mountedContacts++;
+                icons.append(otherContacts.shift());
+            }
+            if (otherContacts.length !== 0) {
+                const contactsLeft = document.createElement('div');
+                contactsLeft.classList.add('contacts-left');
+                contactsLeft.innerHTML = `<span>+${otherContacts.length}</span>`;
+                icons.append(contactsLeft);
+                contactsLeft.addEventListener('click', () => {
+                    contactsLeft.remove();
+                    for (let otherContact of otherContacts) {
+                        icons.append(otherContact);
+                        tippy(otherContact, {
+                            theme: 'crm',
+                            trigger: 'click',
+                            interactive: true,
+                        })
+                    }
+                })
+            }
+
+
             iconsWrapper.append(icons);
             listItem.append(iconsWrapper);
 
@@ -176,7 +286,7 @@
             actionAlter.classList.add('cell__content', 'cell__content_content', 'actions-cell__content', 'actions-cell__alter');
             const actionDelete = document.createElement('button');
             actionDelete.classList.add('cell__content', 'cell__content_content', 'actions-cell__content', 'actions-cell__delete')
-            actionAlter.classList.add('cell__content', 'cell__content_content', 'actions-cell__content', 'actions-cell__delete');
+            actionAlter.classList.add('cell__content', 'cell__content_content', 'actions-cell__content');
             actionAlter.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
                 '                          <path d="M0 10.5V13H2.5L9.87333 5.62662L7.37333 3.12662L0 10.5ZM11.8067 3.69329C12.0667 3.43329 12.0667 3.01329 11.8067 2.75329L10.2467 1.19329C9.98667 0.933291 9.56667 0.933291 9.30667 1.19329L8.08667 2.41329L10.5867 4.91329L11.8067 3.69329Z" fill="#9873FF"/>\n' +
                 '                        </svg>\n' +
@@ -200,12 +310,17 @@
 
             crmTable.append(listItem);
         }
+        tippy('.tippy', {
+            theme: 'crm',
+            trigger: 'click',
+            interactive: true,
+        });
     }
 
     const addClientButton = document.querySelector('.add-client');
     addClientButton.addEventListener('click', () => {
         renderModalForm('new client');
-    })
+    });
 
     function renderModalForm(kind, student = null) {
         const modalBackground = document.createElement('div');
@@ -219,27 +334,24 @@
                 "      <form class=\"modal__form form\">\n" +
                 "        <div class=\"input-wrapper\">\n" +
                 "          <div class='name-wrapper'>\n" +
-                "              <input id='lastname' type=\"text\" class=\"form__input form__input_lastname\">\n" +
+                "              <input id='lastname' type=\"text\" class=\"form__input form__input_lastname\" name='lastname'>\n" +
                 "              <label for='lastname' class='new-client-label'>Фамилия<span>*</span></label>\n" +
                 "          </div>\n" +
                 "          <div class='name-wrapper'>\n" +
-                "              <input id='name' type=\"text\" class=\"form__input form__input_name\">\n" +
+                "              <input id='name' type=\"text\" class=\"form__input form__input_name\" name='name'>\n" +
                 "              <label for='name' class='new-client-label'>Имя<span>*</span></label>\n" +
                 "          </div>\n" +
                 "          <div class='name-wrapper'>\n" +
-                "              <input id='surname' type=\"text\" class=\"form__input form__input_surname\">\n" +
+                "              <input id='surname' type=\"text\" class=\"form__input form__input_surname\" name='surname'>\n" +
                 "              <label for='surname' class='new-client-label'>Отчество</label>\n" +
                 "          </div>\n" +
                 "        </div>\n" +
                 "        <div class=\"add-contact-container\">\n" +
                 "          <button class=\"form__add-contact no-contacts\">\n" +
-                "            <svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
-                "              <path d=\"M7.00001 3.66659C6.63334 3.66659 6.33334 3.96659 6.33334 4.33325V6.33325H4.33334C3.96668 6.33325 3.66668 6.63325 3.66668 6.99992C3.66668 7.36659 3.96668 7.66659 4.33334 7.66659H6.33334V9.66659C6.33334 10.0333 6.63334 10.3333 7.00001 10.3333C7.36668 10.3333 7.66668 10.0333 7.66668 9.66659V7.66659H9.66668C10.0333 7.66659 10.3333 7.36659 10.3333 6.99992C10.3333 6.63325 10.0333 6.33325 9.66668 6.33325H7.66668V4.33325C7.66668 3.96659 7.36668 3.66659 7.00001 3.66659ZM7.00001 0.333252C3.32001 0.333252 0.333344 3.31992 0.333344 6.99992C0.333344 10.6799 3.32001 13.6666 7.00001 13.6666C10.68 13.6666 13.6667 10.6799 13.6667 6.99992C13.6667 3.31992 10.68 0.333252 7.00001 0.333252ZM7.00001 12.3333C4.06001 12.3333 1.66668 9.93992 1.66668 6.99992C1.66668 4.05992 4.06001 1.66659 7.00001 1.66659C9.94001 1.66659 12.3333 4.05992 12.3333 6.99992C12.3333 9.93992 9.94001 12.3333 7.00001 12.3333Z\"\n" +
-                "                    fill=\"#9873FF\"/>\n" +
-                "            </svg>\n" +
                 "            Добавить контакт\n" +
                 "          </button>\n" +
                 "        </div>\n" +
+                "        <p class='error'></p>\n" +
                 "        <button class=\"form__preserve\">Сохранить</button>\n" +
                 "        <button class=\"modal__cancel\">Отмена</button>\n" +
                 "      </form>\n" +
@@ -278,13 +390,19 @@
                 const contacts = contactsArray.map((item) => ({
                     type: String(item.select.value),
                     value: String(item.contactInput.value),
-                }))
-                postUser({
-                    name: name.value,
-                    surname: surname.value,
-                    lastName: lastname.value,
-                    contacts: contacts,
-                }, renderNewTable);
+                }));
+                const saveMessage = validateForm();
+                if (saveMessage.length === 0) {
+                    postUser({
+                        name: name.value,
+                        surname: surname.value,
+                        lastName: lastname.value,
+                        contacts: contacts,
+                    }, renderNewTable);
+                } else {
+                    saveClientButton.style.outline = '1px solid #F06A4D'
+                    modal.querySelector('.error').textContent = saveMessage;
+                }
 
             });
 
@@ -308,11 +426,11 @@
                 "      <form class=\"modal__form form\">\n" +
                 "        <div class=\"input-wrapper\">\n" +
                 "          <label for='lastname' class='edit-label'>Фамилия<span>*</span></label>\n" +
-                `          <input id='lastname' type=\"text\" class=\"form__input form__input_lastname\" value='${student.lastName}'>\n` +
+                `          <input id='lastname' type=\"text\" class=\"form__input form__input_lastname\" value='${student.lastName}' name='lastname'>\n` +
                 "          <label for='name' class='edit-label'>Имя<span>*</span></label>\n" +
-                `          <input id='name' type=\"text\" class=\"form__input form__input_name\" value='${student.name}'>\n` +
+                `          <input id='name' type=\"text\" class=\"form__input form__input_name\" value='${student.name}' name='name'>\n` +
                 "          <label for='surname' class='edit-label'>Отчество</label>\n" +
-                `          <input id='surname' type=\"text\" class=\"form__input form__input_surname\" value='${student.surname}'>\n` +
+                `          <input id='surname' type=\"text\" class=\"form__input form__input_surname\" value='${student.surname}' name='surname'>\n` +
                 "        </div>\n" +
                 "        <div class=\"add-contact-container\">\n" +
                 "          <button class=\"form__add-contact no-contacts\">\n" +
@@ -323,8 +441,9 @@
                 "            Добавить контакт\n" +
                 "          </button>\n" +
                 "        </div>\n" +
+                "        <p class='error'></p>\n" +
                 "        <button class=\"form__preserve\">Сохранить</button>\n" +
-                "        <button class=\"modal__cancel\">Удалить клиента</button>\n" +
+                "        <button class=\"modal__client-delete\">Удалить клиента</button>\n" +
                 "      </form>\n" +
                 "      <button class=\"close-modal\">\n" +
                 "        <svg width=\"17\" height=\"17\" viewBox=\"0 0 17 17\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
@@ -342,8 +461,41 @@
             let contactsArray = [];
             for (let contact of existedContacts) {
                 openContactsSelector(newContact, contactsArray, deletedArray, contact);
-                console.log(contact)
             }
+            newContact.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                openContactsSelector(newContact, contactsArray, deletedArray);
+                contactsArray = contactsArray.filter((item) => {
+                    return deletedArray.indexOf(item.randomId) === -1
+                });
+                if (contactsArray.length === 10) {
+                    newContact.remove();
+                }
+            });
+
+            const saveClientButton = document.querySelector('.form__preserve');
+            saveClientButton.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const name = document.querySelector('.form__input_name');
+                const lastname = document.querySelector('.form__input_lastname');
+                const surname = document.querySelector('.form__input_surname');
+                const contacts = contactsArray.map((item) => ({
+                    type: String(item.select.value),
+                    value: String(item.contactInput.value),
+                }));
+                const data = {};
+                const saveMessage = validateForm();
+                if (saveMessage.length === 0) {
+                    editUser({
+                        name: name ? name.value : student.name,
+                        surname: surname ? surname.value : student.surname,
+                        lastName: lastname ? lastname.value : student.lastName,
+                        contacts: contacts,
+                    }, student.id, renderNewTable);
+                } else {
+                    modal.querySelector('.error').textContent = saveMessage;
+                }
+            });
 
 
         } else if (kind === 'delete client') {
@@ -374,6 +526,23 @@
             mountModal();
         }
 
+        const modalCancel = modal.querySelector('.modal__cancel');
+        const modalClientDelete = modal.querySelector('.modal__client-delete');
+        if (modalCancel) {
+            modalCancel.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                closeModal();
+            });
+        }
+
+        if (modalClientDelete) {
+            modalClientDelete.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                closeModal();
+                renderModalForm('delete client', student);
+            })
+        }
+
         function mountModal() {
             const main = document.querySelector('.main');
             main.append(modalBackground);
@@ -395,7 +564,6 @@
                 .then((res) => res.json())
                 .then((data) => {
                     users = data;
-                    console.log(users);
                     deleteTable();
                     closeModal();
                     renderTable(users);
@@ -410,14 +578,12 @@
         const fieldExist = document.querySelector('.contact-field-container');
         const contactFieldContainer = document.createElement('form');
         contactFieldContainer.innerHTML = `<div class="itc-select" id="select-${randomId}">\n` +
-            '      <button type="button" class="itc-select__toggle" name="car" value="phone" data-select="toggle" data-index="0">\n' +
+            '      <button type="button" class="itc-select__toggle" name="contact" value="phone" data-select="toggle" data-index="0">\n' +
             '        Телефон\n' +
             '      </button>\n' +
             '      <div class="itc-select__dropdown">\n' +
             '        <ul class="itc-select__options">\n' +
-            '          <li class="itc-select__option itc-select__option_selected" data-select="option" data-value="phone"\n' +
-            '              data-index="0">Телефон\n' +
-            '          </li>\n' +
+            '          <li class="itc-select__option itc-select__option_selected" data-select="option" data-value="phone" data-index="0">Телефон</li>\n' +
             '          <li class="itc-select__option" data-select="option" data-value="email" data-index="1">Email</li>\n' +
             '          <li class="itc-select__option" data-select="option" data-value="facebook" data-index="2">Facebook</li>\n' +
             '          <li class="itc-select__option" data-select="option" data-value="vkontakte" data-index="3">VK</li>\n' +
@@ -425,7 +591,7 @@
             '        </ul>\n' +
             '      </div>\n' +
             '    </div>\n' +
-            '    <input type="text" class="contact-input-field" placeholder="Введите данные контакта">\n' +
+            `    <input type="text" class="contact-input-field" placeholder="Введите данные контакта" name="phone">\n` +
             `    <button class="remove-contact">\n` +
             '      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
             '        <path d="M6 0C2.682 0 0 2.682 0 6C0 9.318 2.682 12 6 12C9.318 12 12 9.318 12 6C12 2.682 9.318 0 6 0ZM6 10.8C3.354 10.8 1.2 8.646 1.2 6C1.2 3.354 3.354 1.2 6 1.2C8.646 1.2 10.8 3.354 10.8 6C10.8 8.646 8.646 10.8 6 10.8ZM8.154 3L6 5.154L3.846 3L3 3.846L5.154 6L3 8.154L3.846 9L6 6.846L8.154 9L9 8.154L6.846 6L9 3.846L8.154 3Z"\n' +
@@ -435,6 +601,11 @@
 
 
         contactFieldContainer.classList.add('contact-field-container');
+        const inputField = contactFieldContainer.querySelector('.contact-input-field');
+        if (window.innerWidth < 768) {
+            contactFieldContainer.querySelector('.contact-input-field').placeholder = 'Введите данные'
+        }
+
         if (fieldExist) {
             contactContainer.insertBefore(contactFieldContainer, fieldExist);
         } else {
@@ -458,33 +629,71 @@
         });
 
         if (contact) {
+            const selectButton = contactFieldContainer.querySelector('.itc-select__toggle');
             const contactInput = contactContainer.querySelector('.contact-input-field');
             contactInput.value = contact.value;
-            select.value = contact.type;
-
+            selectButton.value = contact.type;
+            selectButton.innerHTML = buttonTextContent[contact.type];
+            inputField.name = contact.type;
         }
 
-        const contactInput = document.querySelector('.contact-input-field');
-        // const phoneMask = new Inputmask("+7 (999) 999-99-99");
-        // contactInput.addEventListener('input', () => {
-        //     if (select.value === 'phone' || select.value === 'other') {
-        //         phoneMask.mask(contactInput);
-        //     } else if (contactInput.inputmask) {
-        //         contactInput.inputmask.remove();
-        //     }
-        // })
+        const contactInput = contactFieldContainer.querySelector('.contact-input-field');
+        const phoneMask = new Inputmask("+7 (999) 999-99-99");
+        if (select.value === 'phone' || select.value === 'other') {
+            phoneMask.mask(contactInput);
+        }
+        contactFieldContainer.querySelector(`#select-${randomId}`).addEventListener('itc.select.change', (e) => {
+            const selected = e.target.querySelector('.itc-select__toggle').value;
+            if (selected === 'phone' || selected === 'other') {
+                phoneMask.mask(contactInput);
+            } else if (contactInput.inputmask) {
+                contactInput.inputmask.remove();
+            }
+            contactInput.value = '';
+            inputField.name = selected;
+        });
 
         contactsArray.push({ contactInput: contactInput, select, randomId });
     }
 
-    renderTable(users);
     const columnSortButtons = document.querySelectorAll('.cell__sort-btn');
+    let sortedBy = columnSortButtons[0];
+    sortedBy.querySelector('svg').style.transform = 'rotate(180deg)';
+    sortStudents(users, 'id', sortedBy, true);
+    renderTable(users);
+    let sortedResult;
     for (let columnSort of columnSortButtons) {
         columnSort.addEventListener('click', () => {
-            users = sortStudents(users, columnSort.dataset.type);
+            if (sortedBy === columnSort) {
+                sortedResult = sortStudents(users, columnSort.dataset.type, columnSort);
+                sortedResult.sortedColumn = null;
+                columnSortButtons.forEach((item) => {
+                    item.querySelector('svg').style.transform = '';
+                })
+            } else {
+                columnSortButtons.forEach((item) => {
+                    item.querySelector('svg').style.transform = '';
+                })
+                sortedResult = sortStudents(users, columnSort.dataset.type, columnSort, true);
+                sortedResult.sortedColumn.querySelector('svg').style.transform = 'rotate(180deg)';
+            }
+            users = sortedResult.studentsArray;
+            sortedBy = sortedResult.sortedColumn;
             deleteTable();
             renderTable(users);
         })
     }
+
+    const searchInput = document.querySelector('.header__user-search');
+    let timer;
+    searchInput.addEventListener('input', () => {
+        if (timer) {
+            clearTimeout(timer);
+        }
+        timer = setTimeout(async () => {
+            await getUserFromSearch(searchInput.value);
+        }, 1000);
+    })
+
 
 })();
