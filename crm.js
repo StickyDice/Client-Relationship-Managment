@@ -156,27 +156,27 @@
                 invalidInput = input;
                 break;
             }
-            if (input.name === 'vkontakte' && !input.value.includes('vk.com/')) {
+            if (input.name === 'vkontakte' && !input.value.trim().includes('vk.com/')) {
                 errorMessage = 'Введите верный id Вконтакте'
                 invalidInput = input;
                 break;
             }
-            if (input.name === 'facebook' && !input.value.includes('https://www.facebook.com/')) {
+            if (input.name === 'facebook' && !input.value.trim().includes('https://www.facebook.com/')) {
                 errorMessage = 'Введите верную ссылку на Facebook'
                 invalidInput = input;
                 break;
             }
-            if (input.name === 'email' && !EMAIL_REGEX.test(input.value)) {
+            if (input.name === 'email' && !EMAIL_REGEX.test(input.value.trim())) {
                 errorMessage = 'Введите верный email'
                 invalidInput = input;
                 break;
             }
-            if ((input.name === 'name' || input.name === 'surname') && !NAME_REGEX.test(input.value) || (input.name === 'lastname' && input.value.length > 0 && !NAME_REGEX.test(input.value))) {
+            if ((input.name === 'name' || input.name === 'surname') && input.value.trim().length > 0 && !NAME_REGEX.test(input.value.trim()) || (input.name === 'lastname' && input.value.trim().length > 0 && !NAME_REGEX.test(input.value.trim()))) {
                 errorMessage = `Поле ${convertName[input.name]} содержит недопустимые символы`
                 invalidInput = input;
                 break;
             }
-            if (input.name !== 'lastname' && input.value.length < 3 || input.name === 'lastname' && input.value.length > 0 && input.value.length < 3) {
+            if (input.name !== 'lastname' && input.value.trim().length < 3 || input.name === 'lastname' && input.value.trim().length > 0 && input.value.trim().length < 3) {
                 errorMessage = `Поле ${convertName[input.name]} должно содержать минимум 3 символа`
                 invalidInput = input;
                 break;
