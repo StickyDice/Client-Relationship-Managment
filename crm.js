@@ -402,10 +402,10 @@
                 const saveMessage = validateForm();
                 if (saveMessage.length === 0) {
                     postUser({
-                        name: name.value,
-                        surname: surname.value,
-                        lastName: lastname.value,
-                        contacts: contacts,
+                        name: name.value.trim(),
+                        surname: surname.value.trim(),
+                        lastName: lastname.value.trim(),
+                        contacts: contacts.trim(),
                     }, renderNewTable);
                 } else {
                     saveClientButton.style.outline = '1px solid #F06A4D'
@@ -491,9 +491,9 @@
                 const saveMessage = validateForm();
                 if (saveMessage.length === 0) {
                     editUser({
-                        name: name ? name.value : student.name,
-                        surname: surname ? surname.value : student.surname,
-                        lastName: lastname ? lastname.value : student.lastName,
+                        name: name ? name.value.trim() : student.name,
+                        surname: surname ? surname.value.trim() : student.surname,
+                        lastName: lastname ? lastname.value.trim() : student.lastName,
                         contacts: contacts,
                     }, student.id, renderNewTable);
                 } else {
