@@ -135,9 +135,9 @@
 
     function validateForm() {
         const convertName = {
-            'lastname': 'Фамилия',
+            'lastname': 'Отчество',
             'name': 'Имя',
-            'surname': 'Отчество',
+            'surname': 'Фамилия',
             'email': 'Email',
             'phone': 'Телефон',
             'facebook': 'Facebook',
@@ -171,19 +171,21 @@
                 invalidInput = input;
                 break;
             }
-            if ((input.name === 'name' || input.name === 'lastname' || input.name === 'surname') && !NAME_REGEX.test(input.value)) {
+            if ((input.name === 'name' || input.name === 'surname') && !NAME_REGEX.test(input.value) || (input.name === 'lastname' && input.value.length > 0 && !NAME_REGEX.test(input.value))) {
                 errorMessage = `Поле ${convertName[input.name]} содержит недопустимые символы`
                 invalidInput = input;
                 break;
             }
-            if (input.value.length < 3) {
+            if (input.name !== 'lastname' && input.value.length < 3 || input.name === 'lastname' && input.value.length > 0 && input.value.length < 3) {
                 errorMessage = `Поле ${convertName[input.name]} должно содержать минимум 3 символа`
                 invalidInput = input;
                 break;
             }
         }
 
-        invalidInput.classList.add('invalidField');
+        if (invalidInput) {
+            invalidInput.classList.add('invalidField');
+        }
         return errorMessage ? errorMessage : '';
     }
 
@@ -207,7 +209,7 @@
             nameWrapper.classList.add('row__cell', 'cell', 'name-cell');
             const name = document.createElement('span');
             name.classList.add('cell__content', 'cell__content_content', 'name-cell__content');
-            name.textContent = `${student.lastName} ${student.name} ${student.surname}`;
+            name.textContent = `${student.surname} ${student.name} ${student.lastName}`;
             nameWrapper.append(name);
             listItem.append(nameWrapper);
 
@@ -306,6 +308,9 @@
 
             actionAlter.addEventListener('click', () => {
                 renderModalForm('edit client', student);
+                const modal = document.querySelector('.modal');
+                const modalBackground = document.querySelector('.modal-background');
+                modalBackground.style.height = `calc(100% + ${modal.getBoundingClientRect().height}px - 300px)`;
             });
 
             crmTable.append(listItem);
@@ -320,6 +325,9 @@
     const addClientButton = document.querySelector('.add-client');
     addClientButton.addEventListener('click', () => {
         renderModalForm('new client');
+        const modal = document.querySelector('.modal');
+        const modalBackground = document.querySelector('.modal-background');
+        modalBackground.style.height = `calc(100% + ${modal.getBoundingClientRect().height}px)`;
     });
 
     function renderModalForm(kind, student = null) {
@@ -334,7 +342,7 @@
                 "      <form class=\"modal__form form\">\n" +
                 "        <div class=\"input-wrapper\">\n" +
                 "          <div class='name-wrapper'>\n" +
-                "              <input id='lastname' type=\"text\" class=\"form__input form__input_lastname\" name='lastname'>\n" +
+                "              <input id='lastname' type=\"text\" class=\"form__input form__input_surname\" name='surname'>\n" +
                 "              <label for='lastname' class='new-client-label'>Фамилия<span>*</span></label>\n" +
                 "          </div>\n" +
                 "          <div class='name-wrapper'>\n" +
@@ -342,7 +350,7 @@
                 "              <label for='name' class='new-client-label'>Имя<span>*</span></label>\n" +
                 "          </div>\n" +
                 "          <div class='name-wrapper'>\n" +
-                "              <input id='surname' type=\"text\" class=\"form__input form__input_surname\" name='surname'>\n" +
+                "              <input id='surname' type=\"text\" class=\"form__input form__input_lastname\" name='lastname'>\n" +
                 "              <label for='surname' class='new-client-label'>Отчество</label>\n" +
                 "          </div>\n" +
                 "        </div>\n" +
@@ -426,18 +434,14 @@
                 "      <form class=\"modal__form form\">\n" +
                 "        <div class=\"input-wrapper\">\n" +
                 "          <label for='lastname' class='edit-label'>Фамилия<span>*</span></label>\n" +
-                `          <input id='lastname' type=\"text\" class=\"form__input form__input_lastname\" value='${student.lastName}' name='lastname'>\n` +
+                `          <input id='lastname' type=\"text\" class=\"form__input form__input_surname\" value='${student.surname}' name='lastname'>\n` +
                 "          <label for='name' class='edit-label'>Имя<span>*</span></label>\n" +
                 `          <input id='name' type=\"text\" class=\"form__input form__input_name\" value='${student.name}' name='name'>\n` +
                 "          <label for='surname' class='edit-label'>Отчество</label>\n" +
-                `          <input id='surname' type=\"text\" class=\"form__input form__input_surname\" value='${student.surname}' name='surname'>\n` +
+                `          <input id='surname' type=\"text\" class=\"form__input form__input_lastname\" value='${student.lastName}' name='surname'>\n` +
                 "        </div>\n" +
                 "        <div class=\"add-contact-container\">\n" +
                 "          <button class=\"form__add-contact no-contacts\">\n" +
-                "            <svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
-                "              <path d=\"M7.00001 3.66659C6.63334 3.66659 6.33334 3.96659 6.33334 4.33325V6.33325H4.33334C3.96668 6.33325 3.66668 6.63325 3.66668 6.99992C3.66668 7.36659 3.96668 7.66659 4.33334 7.66659H6.33334V9.66659C6.33334 10.0333 6.63334 10.3333 7.00001 10.3333C7.36668 10.3333 7.66668 10.0333 7.66668 9.66659V7.66659H9.66668C10.0333 7.66659 10.3333 7.36659 10.3333 6.99992C10.3333 6.63325 10.0333 6.33325 9.66668 6.33325H7.66668V4.33325C7.66668 3.96659 7.36668 3.66659 7.00001 3.66659ZM7.00001 0.333252C3.32001 0.333252 0.333344 3.31992 0.333344 6.99992C0.333344 10.6799 3.32001 13.6666 7.00001 13.6666C10.68 13.6666 13.6667 10.6799 13.6667 6.99992C13.6667 3.31992 10.68 0.333252 7.00001 0.333252ZM7.00001 12.3333C4.06001 12.3333 1.66668 9.93992 1.66668 6.99992C1.66668 4.05992 4.06001 1.66659 7.00001 1.66659C9.94001 1.66659 12.3333 4.05992 12.3333 6.99992C12.3333 9.93992 9.94001 12.3333 7.00001 12.3333Z\"\n" +
-                "                    fill=\"#9873FF\"/>\n" +
-                "            </svg>\n" +
                 "            Добавить контакт\n" +
                 "          </button>\n" +
                 "        </div>\n" +
