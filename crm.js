@@ -40,25 +40,65 @@
     }
 
     function postUser(data, callback = () => {
-    }) {
+    }, saveClientButton, modal) {
         fetch('http://localhost:3000/api/clients', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(data),
-        }).then(callback);
+        })
+            .then((response) => {
+                return response.json();
+            })
+            .then((data) => {
+                let invalidField = modal.querySelector('.invalidField');
+                if (invalidField) {
+                    invalidField.classList.remove('invalidField');
+                }
+                if (data.errors) {
+                    saveClientButton.style.outline = '1px solid #F06A4D';
+                    let error = data.errors[data.errors.length - 1]
+                    modal.querySelector('.error').textContent = error.message;
+                    modal.querySelector(`.form__input[name="${error.field}"]`).classList.add('invalidField');
+                } else {
+                    callback();
+                }
+            })
+            .catch((err) => {
+                console.log(err)
+            });
     }
 
-    function editUser(data, userId, callback = () => {
-    }) {
+    function editUser(data, userId, callback = () => {}, saveClientButton, modal) {
         fetch(`http://localhost:3000/api/clients/${userId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(data),
-        }).then(callback);
+        })
+            .then((response) => {
+                return response.json();
+            })
+            .then((data) => {
+                let invalidField = modal.querySelector('.invalidField');
+                if (invalidField) {
+                    invalidField.classList.remove('invalidField');
+                }
+                if (data.errors) {
+                    saveClientButton.style.outline = '1px solid #F06A4D';
+                    console.log(saveClientButton)
+                    let error = data.errors[data.errors.length - 1]
+                    modal.querySelector('.error').textContent = error.message;
+                    modal.querySelector(`.form__input[name="${error.field}"]`).classList.add('invalidField');
+                } else {
+                    callback();
+                }
+            })
+            .catch((err) => {
+                console.log(err)
+            });
     }
 
     function deleteUser(userId) {
@@ -131,62 +171,6 @@
         for (let item of tableItems) {
             item.remove();
         }
-    }
-
-    function validateForm() {
-        const convertName = {
-            'lastname': 'Отчество',
-            'name': 'Имя',
-            'surname': 'Фамилия',
-            'email': 'Email',
-            'phone': 'Телефон',
-            'facebook': 'Facebook',
-            'vkontakte': 'VK',
-            'other': 'Доп. телефон'
-        }
-        const validateForms = [ ...document.querySelectorAll('.form__input'), ...document.querySelectorAll('.contact-input-field') ]
-        const EMAIL_REGEX = /^(([^<>()[\].,;:\s@"]+(\.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+\.)+[^<>()[\].,;:\s@"]{2,})$/iu;
-        const NAME_REGEX = /^[А-Я][а-яё]*$/;
-        let errorMessage;
-        let invalidInput;
-        for (let input of validateForms) {
-            input.classList.remove('invalidField');
-            if ((input.name === 'phone' || input.name === 'other') && input.value.length !== 18) {
-                errorMessage = `Поле ${convertName[input.name]} должно содержать 9 цифр`
-                invalidInput = input;
-                break;
-            }
-            if (input.name === 'vkontakte' && !input.value.trim().includes('vk.com/')) {
-                errorMessage = 'Введите верный id Вконтакте'
-                invalidInput = input;
-                break;
-            }
-            if (input.name === 'facebook' && !input.value.trim().includes('https://www.facebook.com/')) {
-                errorMessage = 'Введите верную ссылку на Facebook'
-                invalidInput = input;
-                break;
-            }
-            if (input.name === 'email' && !EMAIL_REGEX.test(input.value.trim())) {
-                errorMessage = 'Введите верный email'
-                invalidInput = input;
-                break;
-            }
-            if ((input.name === 'name' || input.name === 'surname') && input.value.trim().length > 0 && !NAME_REGEX.test(input.value.trim()) || (input.name === 'lastname' && input.value.trim().length > 0 && !NAME_REGEX.test(input.value.trim()))) {
-                errorMessage = `Поле ${convertName[input.name]} содержит недопустимые символы`
-                invalidInput = input;
-                break;
-            }
-            if (input.name !== 'lastname' && input.value.trim().length < 3 || input.name === 'lastname' && input.value.trim().length > 0 && input.value.trim().length < 3) {
-                errorMessage = `Поле ${convertName[input.name]} должно содержать минимум 3 символа`
-                invalidInput = input;
-                break;
-            }
-        }
-
-        if (invalidInput) {
-            invalidInput.classList.add('invalidField');
-        }
-        return errorMessage ? errorMessage : '';
     }
 
     function renderTable(students) {
@@ -396,22 +380,15 @@
                 const lastname = document.querySelector('.form__input_lastname');
                 const surname = document.querySelector('.form__input_surname');
                 const contacts = contactsArray.map((item) => ({
-                    type: String(item.select.value),
-                    value: String(item.contactInput.value),
+                    type: item.select.value,
+                    value: item.contactInput.value,
                 }));
-                const saveMessage = validateForm();
-                if (saveMessage.length === 0) {
-                    postUser({
-                        name: name.value.trim(),
-                        surname: surname.value.trim(),
-                        lastName: lastname.value.trim(),
-                        contacts: contacts.trim(),
-                    }, renderNewTable);
-                } else {
-                    saveClientButton.style.outline = '1px solid #F06A4D'
-                    modal.querySelector('.error').textContent = saveMessage;
-                }
-
+                postUser({
+                    name: name.value.trim(),
+                    surname: surname.value.trim(),
+                    lastName: lastname.value.trim(),
+                    contacts: contacts,
+                }, renderNewTable, saveClientButton, modal);
             });
 
             const inputs = document.querySelectorAll('.form__input');
@@ -434,11 +411,11 @@
                 "      <form class=\"modal__form form\">\n" +
                 "        <div class=\"input-wrapper\">\n" +
                 "          <label for='lastname' class='edit-label'>Фамилия<span>*</span></label>\n" +
-                `          <input id='lastname' type=\"text\" class=\"form__input form__input_surname\" value='${student.surname}' name='lastname'>\n` +
+                `          <input id='lastname' type=\"text\" class=\"form__input form__input_surname\" value='${student.surname}' name='surname'>\n` +
                 "          <label for='name' class='edit-label'>Имя<span>*</span></label>\n" +
                 `          <input id='name' type=\"text\" class=\"form__input form__input_name\" value='${student.name}' name='name'>\n` +
                 "          <label for='surname' class='edit-label'>Отчество</label>\n" +
-                `          <input id='surname' type=\"text\" class=\"form__input form__input_lastname\" value='${student.lastName}' name='surname'>\n` +
+                `          <input id='surname' type=\"text\" class=\"form__input form__input_lastname\" value='${student.lastName}' name='lastname'>\n` +
                 "        </div>\n" +
                 "        <div class=\"add-contact-container\">\n" +
                 "          <button class=\"form__add-contact no-contacts\">\n" +
@@ -488,17 +465,12 @@
                     value: String(item.contactInput.value),
                 }));
                 const data = {};
-                const saveMessage = validateForm();
-                if (saveMessage.length === 0) {
-                    editUser({
-                        name: name ? name.value.trim() : student.name,
-                        surname: surname ? surname.value.trim() : student.surname,
-                        lastName: lastname ? lastname.value.trim() : student.lastName,
-                        contacts: contacts,
-                    }, student.id, renderNewTable);
-                } else {
-                    modal.querySelector('.error').textContent = saveMessage;
-                }
+                editUser({
+                    name: name ? name.value.trim() : student.name,
+                    surname: surname ? surname.value.trim() : student.surname,
+                    lastName: lastname ? lastname.value.trim() : student.lastName,
+                    contacts: contacts,
+                }, student.id, renderNewTable, saveClientButton, modal);
             });
 
 
